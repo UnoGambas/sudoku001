@@ -20,30 +20,53 @@ let checkButton = {
 
 // 가상 키보드 관련 변수
 let keyboardButtons = [];
-const KEYBOARD_ROWS = 2;
-const KEYBOARD_COLS = 5;
+let KEYBOARD_ROWS = 2;
+let KEYBOARD_COLS = 5;
 let keyboardCellSize;
 
 function setup() {
-  // 캔버스 크기를 화면 크기에 맞게 설정
-  const size = min(windowWidth, windowHeight) * 0.9;
-  const keyboardHeight = size * 0.3; // 가상 키보드 높이
-  const buttonHeight = 40; // CHECK 버튼 영역 높이
-  createCanvas(size, size + keyboardHeight + buttonHeight); // 키보드와 버튼을 위한 추가 공간
+  // 화면 방향 확인
+  const isLandscape = windowWidth > windowHeight;
+  
+  // 기본 크기 계산
+  const baseSize = min(windowWidth * 0.9, windowHeight * 0.9);
+  let canvasWidth, canvasHeight;
+  
+  if (isLandscape) {
+    // 가로 모드
+    const keyboardWidth = baseSize * 0.2; // 키보드 너비
+    canvasWidth = baseSize;
+    canvasHeight = baseSize;
+    
+    // 키보드 설정 변경
+    KEYBOARD_ROWS = 5;
+    KEYBOARD_COLS = 2;
+    keyboardCellSize = min(keyboardWidth / KEYBOARD_COLS, (baseSize * 0.8) / KEYBOARD_ROWS);
+  } else {
+    // 세로 모드
+    const keyboardHeight = baseSize * 0.3;
+    canvasWidth = baseSize;
+    canvasHeight = baseSize + keyboardHeight + 50; // 50은 버튼 영역
+    
+    // 키보드 설정 변경
+    KEYBOARD_ROWS = 2;
+    KEYBOARD_COLS = 5;
+    keyboardCellSize = min(baseSize / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
+  }
+  
+  createCanvas(canvasWidth, canvasHeight);
   
   // 초기 게임 보드 생성
   initializeGame();
   
   // 셀 크기 계산 (스도쿠 보드용)
-  cellSize = size / GRID_SIZE;
-  // 키보드 셀 크기 계산
-  keyboardCellSize = min(size / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
+  cellSize = min((isLandscape ? baseSize * 0.75 : baseSize) / GRID_SIZE);
   
   // 체크 버튼 위치 설정
-  checkButton.width = 100;
-  checkButton.height = 30;
-  checkButton.x = width/2 - checkButton.width/2;
-  checkButton.y = buttonHeight/2;
+  checkButton.width = min(120, baseSize * 0.3);
+  checkButton.height = 40;
+  checkButton.x = (isLandscape ? baseSize * 0.3 : baseSize/2) - checkButton.width/2;
+  checkButton.y = 5;
   
   // 가상 키보드 초기화
   initializeKeyboard();
@@ -189,7 +212,7 @@ function isValid(row, col, num) {
 }
 
 function drawGrid() {
-  const boardY = 40; // CHECK 버튼 아래 공간
+  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
   
   stroke(0);
   strokeWeight(1);
@@ -213,7 +236,7 @@ function drawGrid() {
 }
 
 function drawNumbers() {
-  const boardY = 40; // CHECK 버튼 아래 공간
+  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
   
   textAlign(CENTER, CENTER);
   textSize(cellSize * 0.5);
@@ -229,7 +252,7 @@ function drawNumbers() {
 }
 
 function highlightSelected() {
-  const boardY = 40; // CHECK 버튼 아래 공간
+  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
   
   noStroke();
   fill(200, 200, 255, 100);
@@ -262,22 +285,30 @@ function touchEnded() {
 }
 
 function drawCheckButton() {
+  push();
+  // 버튼 그림자
+  noStroke();
+  fill(0, 0, 0, 20);
+  rect(checkButton.x + 2, checkButton.y + 2, checkButton.width, checkButton.height, 8);
+  
   // 버튼 배경
   if (checkButton.isPressed) {
-    fill(180);
+    fill(150, 170, 255);
   } else {
-    fill(220);
+    fill(170, 190, 255);
   }
-  stroke(0);
-  strokeWeight(1);
-  rect(checkButton.x, checkButton.y, checkButton.width, checkButton.height, 5);
+  stroke(100, 120, 255);
+  strokeWeight(2);
+  rect(checkButton.x, checkButton.y, checkButton.width, checkButton.height, 8);
   
   // 버튼 텍스트
-  fill(0);
+  fill(255);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textStyle(BOLD);
+  textSize(min(20, checkButton.height * 0.6));
   text('CHECK', checkButton.x + checkButton.width/2, checkButton.y + checkButton.height/2);
+  pop();
 }
 
 function handleCheckButtonPress(x, y) {
@@ -304,7 +335,7 @@ function handleInput(x, y) {
     return;
   }
 
-  const boardY = 40; // CHECK 버튼 아래 공간
+  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
   
   // 스도쿠 보드 클릭 처리
   if (y >= boardY && y < boardY + (cellSize * GRID_SIZE)) {
