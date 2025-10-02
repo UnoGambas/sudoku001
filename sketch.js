@@ -10,26 +10,38 @@ const GRID_SIZE = 9;
 const CELL_PADDING = 2;
 const HIGHLIGHT_DURATION = 3000; // 3초
 
+// 가상 키보드 관련 변수
+let keyboardButtons = [];
+const KEYBOARD_ROWS = 2;
+const KEYBOARD_COLS = 5;
+let keyboardCellSize;
+
 function setup() {
   // 캔버스 크기를 화면 크기에 맞게 설정
   const size = min(windowWidth, windowHeight) * 0.9;
-  createCanvas(size, size + 50); // 버튼을 위한 추가 공간
-  cellSize = width / GRID_SIZE;
+  const keyboardHeight = size * 0.3; // 가상 키보드 높이
+  createCanvas(size, size + keyboardHeight); // 키보드를 위한 추가 공간
+  cellSize = size / GRID_SIZE;
+  keyboardCellSize = min(size / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
   
   // 초기 게임 보드 생성
   initializeGame();
   
   // 유효성 검사 버튼 생성
   validateButton = createButton('CHECK');
-  validateButton.position(width/2 - 50, height - 40);
-  validateButton.size(100, 30);
+  validateButton.position(width/2 - 50, height - 30);
+  validateButton.size(100, 25);
   validateButton.mousePressed(validateBoard);
+  
+  // 가상 키보드 초기화
+  initializeKeyboard();
 }
 
 function draw() {
   background(255);
   drawGrid();
   drawNumbers();
+  drawKeyboard();
   
   if (selected !== null) {
     highlightSelected();
@@ -50,6 +62,48 @@ function draw() {
     fill(0, 255, 0, 100);
     for (let cell of validCells) {
       rect(cell.col * cellSize, cell.row * cellSize, cellSize, cellSize);
+    }
+  }
+}
+
+function initializeKeyboard() {
+  const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]; // 0은 지우기 기능
+  let index = 0;
+  
+  for (let row = 0; row < KEYBOARD_ROWS; row++) {
+    keyboardButtons[row] = [];
+    for (let col = 0; col < KEYBOARD_COLS; col++) {
+      if (index < numbers.length) {
+        keyboardButtons[row][col] = numbers[index];
+        index++;
+      }
+    }
+  }
+}
+
+function drawKeyboard() {
+  const keyboardY = height - (KEYBOARD_ROWS * keyboardCellSize) - 40;
+  const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+  
+  for (let row = 0; row < KEYBOARD_ROWS; row++) {
+    for (let col = 0; col < KEYBOARD_COLS; col++) {
+      if (keyboardButtons[row][col] !== undefined) {
+        const x = startX + (col * keyboardCellSize);
+        const y = keyboardY + (row * keyboardCellSize);
+        
+        // 키 배경
+        stroke(0);
+        fill(240);
+        rect(x, y, keyboardCellSize, keyboardCellSize, 5);
+        
+        // 키 텍스트
+        noStroke();
+        fill(0);
+        textAlign(CENTER, CENTER);
+        textSize(keyboardCellSize * 0.5);
+        const number = keyboardButtons[row][col];
+        text(number === 0 ? "←" : number, x + keyboardCellSize/2, y + keyboardCellSize/2);
+      }
     }
   }
 }
@@ -156,19 +210,45 @@ function mousePressed() {
 }
 
 function touchStarted() {
-  handleInput(touches[0].x, touches[0].y);
+  if (touches.length > 0) {
+    handleInput(touches[0].x, touches[0].y);
+  }
   return false; // 기본 동작 방지
 }
 
 function handleInput(x, y) {
-  let row = floor(y / cellSize);
-  let col = floor(x / cellSize);
+  // 스도쿠 보드 클릭 처리
+  if (y < cellSize * GRID_SIZE) {
+    const row = floor(y / cellSize);
+    const col = floor(x / cellSize);
+    
+    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+      if (selected && selected.row === row && selected.col === col) {
+        selected = null;
+      } else {
+        selected = { row, col };
+      }
+    }
+  }
   
-  if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-    if (selected && selected.row === row && selected.col === col) {
-      selected = null;
-    } else {
-      selected = { row, col };
+  // 가상 키보드 클릭 처리
+  const keyboardY = height - (KEYBOARD_ROWS * keyboardCellSize) - 40;
+  const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+  
+  if (y >= keyboardY && y < keyboardY + (KEYBOARD_ROWS * keyboardCellSize)) {
+    const row = floor((y - keyboardY) / keyboardCellSize);
+    const col = floor((x - startX) / keyboardCellSize);
+    
+    if (row >= 0 && row < KEYBOARD_ROWS && col >= 0 && col < KEYBOARD_COLS) {
+      if (selected !== null && keyboardButtons[row][col] !== undefined) {
+        const number = keyboardButtons[row][col];
+        if (number === 0) {
+          // 지우기 기능
+          board[selected.row][selected.col] = 0;
+        } else {
+          board[selected.row][selected.col] = number;
+        }
+      }
     }
   }
 }
