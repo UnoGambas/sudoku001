@@ -118,19 +118,33 @@ function initializeKeyboard() {
 }
 
 function drawKeyboard() {
-  const boardY = 40; // CHECK 버튼 아래 공간
-  const keyboardY = boardY + (GRID_SIZE * cellSize) + 20; // 스도쿠 보드 아래 여백
-  const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+  const isLandscape = windowWidth > windowHeight;
+  const boardY = checkButton.height + 15;
+  let keyboardX, keyboardY;
+  
+  if (isLandscape) {
+    // 가로 모드에서 왼쪽에 키보드 배치
+    keyboardX = 10;
+    keyboardY = boardY;
+  } else {
+    // 세로 모드에서 아래에 키보드 배치
+    keyboardX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+    keyboardY = boardY + (GRID_SIZE * cellSize) + 20;
+  }
   
   // 키보드 배경
   fill(240);
   noStroke();
-  rect(0, keyboardY - 10, width, (KEYBOARD_ROWS * keyboardCellSize) + 20, 10);
+  rect(keyboardX - 10,
+       keyboardY - 10,
+       (KEYBOARD_COLS * keyboardCellSize) + 20,
+       (KEYBOARD_ROWS * keyboardCellSize) + 20,
+       10);
   
   for (let row = 0; row < KEYBOARD_ROWS; row++) {
     for (let col = 0; col < KEYBOARD_COLS; col++) {
       if (keyboardButtons[row][col] !== undefined) {
-        const x = startX + (col * keyboardCellSize);
+        const x = keyboardX + (col * keyboardCellSize);
         const y = keyboardY + (row * keyboardCellSize);
         
         // 키 배경
@@ -212,14 +226,16 @@ function isValid(row, col, num) {
 }
 
 function drawGrid() {
-  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
+  const isLandscape = windowWidth > windowHeight;
+  const boardY = checkButton.height + 15;
+  const boardX = isLandscape ? (width * 0.25) : 0; // 가로 모드에서는 오른쪽으로 이동
   
   stroke(0);
   strokeWeight(1);
   
   // 스도쿠 보드 영역 이동
   push();
-  translate(0, boardY);
+  translate(boardX, boardY);
   
   // 모든 셀 그리기
   for (let i = 0; i <= GRID_SIZE; i++) {
@@ -229,14 +245,16 @@ function drawGrid() {
     // 수직선
     line(i * cellSize, 0, i * cellSize, GRID_SIZE * cellSize);
     // 수평선
-    line(0, i * cellSize, width, i * cellSize);
+    line(0, i * cellSize, GRID_SIZE * cellSize, i * cellSize);
   }
   
   pop();
 }
 
 function drawNumbers() {
-  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
+  const isLandscape = windowWidth > windowHeight;
+  const boardY = checkButton.height + 15;
+  const boardX = isLandscape ? (width * 0.25) : 0;
   
   textAlign(CENTER, CENTER);
   textSize(cellSize * 0.5);
@@ -245,18 +263,24 @@ function drawNumbers() {
     for (let j = 0; j < GRID_SIZE; j++) {
       if (board[i][j] !== 0) {
         fill(0);
-        text(board[i][j], j * cellSize + cellSize/2, boardY + i * cellSize + cellSize/2);
+        text(board[i][j], 
+             boardX + j * cellSize + cellSize/2,
+             boardY + i * cellSize + cellSize/2);
       }
     }
   }
 }
 
 function highlightSelected() {
-  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
+  const isLandscape = windowWidth > windowHeight;
+  const boardY = checkButton.height + 15;
+  const boardX = isLandscape ? (width * 0.25) : 0;
   
   noStroke();
   fill(200, 200, 255, 100);
-  rect(selected.col * cellSize, boardY + selected.row * cellSize, cellSize, cellSize);
+  rect(boardX + selected.col * cellSize,
+       boardY + selected.row * cellSize,
+       cellSize, cellSize);
 }
 
 function mousePressed() {
@@ -335,12 +359,15 @@ function handleInput(x, y) {
     return;
   }
 
-  const boardY = checkButton.height + 15; // CHECK 버튼 아래 공간 증가
+  const isLandscape = windowWidth > windowHeight;
+  const boardY = checkButton.height + 15;
+  const boardX = isLandscape ? (width * 0.25) : 0;
   
   // 스도쿠 보드 클릭 처리
-  if (y >= boardY && y < boardY + (cellSize * GRID_SIZE)) {
+  if (y >= boardY && y < boardY + (cellSize * GRID_SIZE) &&
+      x >= boardX && x < boardX + (cellSize * GRID_SIZE)) {
     const row = floor((y - boardY) / cellSize);
-    const col = floor(x / cellSize);
+    const col = floor((x - boardX) / cellSize);
     
     if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
       if (selected && selected.row === row && selected.col === col) {
@@ -352,12 +379,19 @@ function handleInput(x, y) {
   }
   
   // 가상 키보드 클릭 처리
-  const keyboardY = boardY + (GRID_SIZE * cellSize) + 20;
-  const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+  let keyboardX, keyboardY;
+  if (isLandscape) {
+    keyboardX = 10;
+    keyboardY = boardY;
+  } else {
+    keyboardX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+    keyboardY = boardY + (GRID_SIZE * cellSize) + 20;
+  }
   
-  if (y >= keyboardY && y < keyboardY + (KEYBOARD_ROWS * keyboardCellSize)) {
+  if (x >= keyboardX && x < keyboardX + (KEYBOARD_COLS * keyboardCellSize) &&
+      y >= keyboardY && y < keyboardY + (KEYBOARD_ROWS * keyboardCellSize)) {
     const row = floor((y - keyboardY) / keyboardCellSize);
-    const col = floor((x - startX) / keyboardCellSize);
+    const col = floor((x - keyboardX) / keyboardCellSize);
     
     if (row >= 0 && row < KEYBOARD_ROWS && col >= 0 && col < KEYBOARD_COLS) {
       if (selected !== null && keyboardButtons[row][col] !== undefined) {
