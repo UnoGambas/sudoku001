@@ -2,13 +2,21 @@ let board = [];
 let solution = [];
 let selected = null;
 let cellSize;
-let validateButton;
 let invalidCells = [];
 let validCells = [];
 let highlightTimer = 0;
 const GRID_SIZE = 9;
 const CELL_PADDING = 2;
 const HIGHLIGHT_DURATION = 3000; // 3초
+
+// 체크 버튼 관련 변수
+let checkButton = {
+  x: 0,
+  y: 0,
+  width: 100,
+  height: 30,
+  isPressed: false
+};
 
 // 가상 키보드 관련 변수
 let keyboardButtons = [];
@@ -31,11 +39,11 @@ function setup() {
   // 키보드 셀 크기 계산
   keyboardCellSize = min(size / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
   
-  // 유효성 검사 버튼 생성
-  validateButton = createButton('CHECK');
-  validateButton.position(width/2 - 50, buttonHeight/2);
-  validateButton.size(100, 30);
-  validateButton.mousePressed(validateBoard);
+  // 체크 버튼 위치 설정
+  checkButton.width = 100;
+  checkButton.height = 30;
+  checkButton.x = width/2 - checkButton.width/2;
+  checkButton.y = buttonHeight/2;
   
   // 가상 키보드 초기화
   initializeKeyboard();
@@ -46,6 +54,7 @@ function draw() {
   drawGrid();
   drawNumbers();
   drawKeyboard();
+  drawCheckButton();
   
   if (selected !== null) {
     highlightSelected();
@@ -231,6 +240,10 @@ function mousePressed() {
   handleInput(mouseX, mouseY);
 }
 
+function mouseReleased() {
+  handleCheckButtonRelease(mouseX, mouseY);
+}
+
 function touchStarted() {
   if (touches.length > 0) {
     handleInput(touches[0].x, touches[0].y);
@@ -238,7 +251,59 @@ function touchStarted() {
   return false; // 기본 동작 방지
 }
 
+function touchEnded() {
+  if (touches.length > 0) {
+    handleCheckButtonRelease(touches[0].x, touches[0].y);
+  } else {
+    // 터치가 끝난 위치에서 처리
+    handleCheckButtonRelease(mouseX, mouseY);
+  }
+  return false; // 기본 동작 방지
+}
+
+function drawCheckButton() {
+  // 버튼 배경
+  if (checkButton.isPressed) {
+    fill(180);
+  } else {
+    fill(220);
+  }
+  stroke(0);
+  strokeWeight(1);
+  rect(checkButton.x, checkButton.y, checkButton.width, checkButton.height, 5);
+  
+  // 버튼 텍스트
+  fill(0);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  text('CHECK', checkButton.x + checkButton.width/2, checkButton.y + checkButton.height/2);
+}
+
+function handleCheckButtonPress(x, y) {
+  if (x >= checkButton.x && x <= checkButton.x + checkButton.width &&
+      y >= checkButton.y && y <= checkButton.y + checkButton.height) {
+    checkButton.isPressed = true;
+    return true;
+  }
+  return false;
+}
+
+function handleCheckButtonRelease(x, y) {
+  if (checkButton.isPressed &&
+      x >= checkButton.x && x <= checkButton.x + checkButton.width &&
+      y >= checkButton.y && y <= checkButton.y + checkButton.height) {
+    validateBoard();
+  }
+  checkButton.isPressed = false;
+}
+
 function handleInput(x, y) {
+  // 체크 버튼 클릭 처리
+  if (handleCheckButtonPress(x, y)) {
+    return;
+  }
+
   const boardY = 40; // CHECK 버튼 아래 공간
   
   // 스도쿠 보드 클릭 처리
