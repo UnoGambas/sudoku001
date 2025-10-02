@@ -1,5 +1,6 @@
 let board = [];
 let solution = [];
+let initialBoard = []; // 초기 주어진 숫자들을 저장
 let selected = null;
 let cellSize;
 let invalidCells = [];
@@ -85,19 +86,27 @@ function draw() {
   
   // 유효하지 않은 셀 표시
   if (invalidCells.length > 0 && millis() - highlightTimer < HIGHLIGHT_DURATION) {
+    const isLandscape = windowWidth > windowHeight;
+    const boardY = checkButton.height + 15;
+    const boardX = isLandscape ? (width * 0.25) : 0;
+    
     noStroke();
     fill(255, 0, 0, 100);
     for (let cell of invalidCells) {
-      rect(cell.col * cellSize, 40 + cell.row * cellSize, cellSize, cellSize);
+      rect(boardX + cell.col * cellSize, boardY + cell.row * cellSize, cellSize, cellSize);
     }
   }
   
   // 모든 셀이 유효할 때 녹색 표시
   if (validCells.length > 0 && millis() - highlightTimer < HIGHLIGHT_DURATION) {
+    const isLandscape = windowWidth > windowHeight;
+    const boardY = checkButton.height + 15;
+    const boardX = isLandscape ? (width * 0.25) : 0;
+    
     noStroke();
     fill(0, 255, 0, 100);
     for (let cell of validCells) {
-      rect(cell.col * cellSize, 40 + cell.row * cellSize, cellSize, cellSize);
+      rect(boardX + cell.col * cellSize, boardY + cell.row * cellSize, cellSize, cellSize);
     }
   }
 }
@@ -169,12 +178,20 @@ function initializeGame() {
   for (let i = 0; i < GRID_SIZE; i++) {
     board[i] = new Array(GRID_SIZE).fill(0);
     solution[i] = new Array(GRID_SIZE).fill(0);
+    initialBoard[i] = new Array(GRID_SIZE).fill(0);
   }
   
   // 기본 숫자 배치 (간단한 예시)
   generateSudoku();
   // 일부 숫자를 지워서 퍼즐 생성
   createPuzzle();
+  
+  // 초기 보드 상태 저장
+  for (let i = 0; i < GRID_SIZE; i++) {
+    for (let j = 0; j < GRID_SIZE; j++) {
+      initialBoard[i][j] = board[i][j];
+    }
+  }
 }
 
 function generateSudoku() {
@@ -257,18 +274,29 @@ function drawNumbers() {
   const boardX = isLandscape ? (width * 0.25) : 0;
   
   textAlign(CENTER, CENTER);
-  textSize(cellSize * 0.5);
   
   for (let i = 0; i < GRID_SIZE; i++) {
     for (let j = 0; j < GRID_SIZE; j++) {
       if (board[i][j] !== 0) {
-        fill(0);
+        // 초기 주어진 숫자는 굵게, 진하게 표시
+        if (initialBoard[i][j] !== 0) {
+          textStyle(BOLD);
+          textSize(cellSize * 0.6);
+          fill(0, 0, 120); // 진한 파란색
+        } else {
+          // 사용자가 입력한 숫자
+          textStyle(NORMAL);
+          textSize(cellSize * 0.5);
+          fill(0); // 검정색
+        }
         text(board[i][j], 
              boardX + j * cellSize + cellSize/2,
              boardY + i * cellSize + cellSize/2);
       }
     }
   }
+  // 텍스트 스타일 초기화
+  textStyle(NORMAL);
 }
 
 function highlightSelected() {
@@ -277,7 +305,12 @@ function highlightSelected() {
   const boardX = isLandscape ? (width * 0.25) : 0;
   
   noStroke();
-  fill(200, 200, 255, 100);
+  // 초기 숫자인 경우 다른 색상으로 하이라이트
+  if (initialBoard[selected.row][selected.col] !== 0) {
+    fill(200, 200, 220, 100); // 더 밝은 색상
+  } else {
+    fill(200, 200, 255, 100); // 기본 하이라이트 색상
+  }
   rect(boardX + selected.col * cellSize,
        boardY + selected.row * cellSize,
        cellSize, cellSize);
@@ -395,6 +428,11 @@ function handleInput(x, y) {
     
     if (row >= 0 && row < KEYBOARD_ROWS && col >= 0 && col < KEYBOARD_COLS) {
       if (selected !== null && keyboardButtons[row][col] !== undefined) {
+        // 초기 숫자인 경우 입력 무시
+        if (initialBoard[selected.row][selected.col] !== 0) {
+          return;
+        }
+        
         const number = keyboardButtons[row][col];
         if (number === 0) {
           // 지우기 기능
@@ -409,6 +447,10 @@ function handleInput(x, y) {
 
 function keyPressed() {
   if (selected && key >= '1' && key <= '9') {
+    // 초기 숫자인 경우 입력 무시
+    if (initialBoard[selected.row][selected.col] !== 0) {
+      return;
+    }
     let num = parseInt(key);
     board[selected.row][selected.col] = num;
   }
