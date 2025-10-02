@@ -20,17 +20,21 @@ function setup() {
   // 캔버스 크기를 화면 크기에 맞게 설정
   const size = min(windowWidth, windowHeight) * 0.9;
   const keyboardHeight = size * 0.3; // 가상 키보드 높이
-  createCanvas(size, size + keyboardHeight); // 키보드를 위한 추가 공간
-  cellSize = size / GRID_SIZE;
-  keyboardCellSize = min(size / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
+  const buttonHeight = 40; // CHECK 버튼 영역 높이
+  createCanvas(size, size + keyboardHeight + buttonHeight); // 키보드와 버튼을 위한 추가 공간
   
   // 초기 게임 보드 생성
   initializeGame();
   
+  // 셀 크기 계산 (스도쿠 보드용)
+  cellSize = size / GRID_SIZE;
+  // 키보드 셀 크기 계산
+  keyboardCellSize = min(size / KEYBOARD_COLS, keyboardHeight / KEYBOARD_ROWS);
+  
   // 유효성 검사 버튼 생성
   validateButton = createButton('CHECK');
-  validateButton.position(width/2 - 50, height - 30);
-  validateButton.size(100, 25);
+  validateButton.position(width/2 - 50, buttonHeight/2);
+  validateButton.size(100, 30);
   validateButton.mousePressed(validateBoard);
   
   // 가상 키보드 초기화
@@ -52,7 +56,7 @@ function draw() {
     noStroke();
     fill(255, 0, 0, 100);
     for (let cell of invalidCells) {
-      rect(cell.col * cellSize, cell.row * cellSize, cellSize, cellSize);
+      rect(cell.col * cellSize, 40 + cell.row * cellSize, cellSize, cellSize);
     }
   }
   
@@ -61,7 +65,7 @@ function draw() {
     noStroke();
     fill(0, 255, 0, 100);
     for (let cell of validCells) {
-      rect(cell.col * cellSize, cell.row * cellSize, cellSize, cellSize);
+      rect(cell.col * cellSize, 40 + cell.row * cellSize, cellSize, cellSize);
     }
   }
 }
@@ -82,8 +86,14 @@ function initializeKeyboard() {
 }
 
 function drawKeyboard() {
-  const keyboardY = height - (KEYBOARD_ROWS * keyboardCellSize) - 40;
+  const boardY = 40; // CHECK 버튼 아래 공간
+  const keyboardY = boardY + (GRID_SIZE * cellSize) + 20; // 스도쿠 보드 아래 여백
   const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
+  
+  // 키보드 배경
+  fill(240);
+  noStroke();
+  rect(0, keyboardY - 10, width, (KEYBOARD_ROWS * keyboardCellSize) + 20, 10);
   
   for (let row = 0; row < KEYBOARD_ROWS; row++) {
     for (let col = 0; col < KEYBOARD_COLS; col++) {
@@ -93,7 +103,7 @@ function drawKeyboard() {
         
         // 키 배경
         stroke(0);
-        fill(240);
+        fill(255);
         rect(x, y, keyboardCellSize, keyboardCellSize, 5);
         
         // 키 텍스트
@@ -170,8 +180,14 @@ function isValid(row, col, num) {
 }
 
 function drawGrid() {
+  const boardY = 40; // CHECK 버튼 아래 공간
+  
   stroke(0);
   strokeWeight(1);
+  
+  // 스도쿠 보드 영역 이동
+  push();
+  translate(0, boardY);
   
   // 모든 셀 그리기
   for (let i = 0; i <= GRID_SIZE; i++) {
@@ -179,13 +195,17 @@ function drawGrid() {
     strokeWeight(i % 3 === 0 ? 3 : 1);
     
     // 수직선
-    line(i * cellSize, 0, i * cellSize, height);
+    line(i * cellSize, 0, i * cellSize, GRID_SIZE * cellSize);
     // 수평선
     line(0, i * cellSize, width, i * cellSize);
   }
+  
+  pop();
 }
 
 function drawNumbers() {
+  const boardY = 40; // CHECK 버튼 아래 공간
+  
   textAlign(CENTER, CENTER);
   textSize(cellSize * 0.5);
   
@@ -193,16 +213,18 @@ function drawNumbers() {
     for (let j = 0; j < GRID_SIZE; j++) {
       if (board[i][j] !== 0) {
         fill(0);
-        text(board[i][j], j * cellSize + cellSize/2, i * cellSize + cellSize/2);
+        text(board[i][j], j * cellSize + cellSize/2, boardY + i * cellSize + cellSize/2);
       }
     }
   }
 }
 
 function highlightSelected() {
+  const boardY = 40; // CHECK 버튼 아래 공간
+  
   noStroke();
   fill(200, 200, 255, 100);
-  rect(selected.col * cellSize, selected.row * cellSize, cellSize, cellSize);
+  rect(selected.col * cellSize, boardY + selected.row * cellSize, cellSize, cellSize);
 }
 
 function mousePressed() {
@@ -217,9 +239,11 @@ function touchStarted() {
 }
 
 function handleInput(x, y) {
+  const boardY = 40; // CHECK 버튼 아래 공간
+  
   // 스도쿠 보드 클릭 처리
-  if (y < cellSize * GRID_SIZE) {
-    const row = floor(y / cellSize);
+  if (y >= boardY && y < boardY + (cellSize * GRID_SIZE)) {
+    const row = floor((y - boardY) / cellSize);
     const col = floor(x / cellSize);
     
     if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
@@ -232,7 +256,7 @@ function handleInput(x, y) {
   }
   
   // 가상 키보드 클릭 처리
-  const keyboardY = height - (KEYBOARD_ROWS * keyboardCellSize) - 40;
+  const keyboardY = boardY + (GRID_SIZE * cellSize) + 20;
   const startX = (width - (KEYBOARD_COLS * keyboardCellSize)) / 2;
   
   if (y >= keyboardY && y < keyboardY + (KEYBOARD_ROWS * keyboardCellSize)) {
